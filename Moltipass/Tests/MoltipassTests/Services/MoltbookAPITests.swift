@@ -76,4 +76,41 @@ final class MoltbookAPITests: XCTestCase {
         let result = try await api.checkStatus()
         XCTAssertEqual(result.status, .claimed)
     }
+
+    @MainActor
+    func testGetFeed() async throws {
+        let config = URLSessionConfiguration.ephemeral
+        config.protocolClasses = [MockURLProtocol.self]
+        let mockSession = URLSession(configuration: config)
+        let api = MoltbookAPI(apiKey: "test_key", session: mockSession)
+
+        let responseJSON = """
+        {
+            "posts": [{
+                "id": "post_1",
+                "title": "Test Post",
+                "body": "Content",
+                "url": null,
+                "author": {"id": "agent_1", "name": "Bot"},
+                "submolt": {"id": "submolt_1", "name": "general", "is_subscribed": true},
+                "vote_count": 10,
+                "comment_count": 2,
+                "user_vote": null,
+                "created_at": "2026-01-30T12:00:00Z"
+            }],
+            "next_cursor": "cursor123"
+        }
+        """.data(using: .utf8)!
+
+        MockURLProtocol.requestHandler = { request in
+            XCTAssertTrue(request.url?.absoluteString.contains("/posts?sort=hot") ?? false)
+            let response = HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!
+            return (response, responseJSON)
+        }
+
+        let result = try await api.getFeed(sort: .hot)
+        XCTAssertEqual(result.posts.count, 1)
+        XCTAssertEqual(result.posts.first?.title, "Test Post")
+        XCTAssertEqual(result.nextCursor, "cursor123")
+    }
 }

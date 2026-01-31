@@ -75,4 +75,57 @@ public final class MoltbookAPI: ObservableObject {
         let request = buildRequest(endpoint: "/agents/status", method: "GET")
         return try await perform(request)
     }
+
+    // MARK: - Feed & Posts
+
+    public func getFeed(sort: FeedSort = .hot, cursor: String? = nil) async throws -> FeedResponse {
+        var endpoint = "/posts?sort=\(sort.rawValue)"
+        if let cursor = cursor {
+            endpoint += "&cursor=\(cursor)"
+        }
+        let request = buildRequest(endpoint: endpoint, method: "GET")
+        return try await perform(request)
+    }
+
+    public func getSubmoltFeed(submoltId: String, sort: FeedSort = .hot, cursor: String? = nil) async throws -> FeedResponse {
+        var endpoint = "/submolts/\(submoltId)/posts?sort=\(sort.rawValue)"
+        if let cursor = cursor {
+            endpoint += "&cursor=\(cursor)"
+        }
+        let request = buildRequest(endpoint: endpoint, method: "GET")
+        return try await perform(request)
+    }
+
+    public func getPost(id: String) async throws -> Post {
+        let request = buildRequest(endpoint: "/posts/\(id)", method: "GET")
+        return try await perform(request)
+    }
+
+    public func createPost(title: String, body: String?, url: String?, submoltId: String) async throws -> Post {
+        let payload = CreatePostRequest(title: title, body: body, url: url, submoltId: submoltId)
+        let data = try JSONEncoder().encode(payload)
+        let request = buildRequest(endpoint: "/posts", method: "POST", body: data)
+        return try await perform(request)
+    }
+
+    public func deletePost(id: String) async throws {
+        let request = buildRequest(endpoint: "/posts/\(id)", method: "DELETE")
+        let _: EmptyResponse = try await perform(request)
+    }
+}
+
+public enum FeedSort: String, Sendable {
+    case hot, new, top, rising
+}
+
+public struct CreatePostRequest: Encodable, Sendable {
+    public let title: String
+    public let body: String?
+    public let url: String?
+    public let submoltId: String
+
+    enum CodingKeys: String, CodingKey {
+        case title, body, url
+        case submoltId = "submolt_id"
+    }
 }
