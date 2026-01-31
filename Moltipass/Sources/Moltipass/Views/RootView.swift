@@ -14,8 +14,7 @@ public struct RootView: View {
             case .unauthenticated:
                 WelcomeView()
             case .pendingClaim(let code):
-                // TODO: Replace with ClaimInstructionsView(verificationCode: code) when implemented
-                Text("Pending Claim: \(code)")
+                ClaimInstructionsView(verificationCode: code)
             case .authenticated:
                 MainTabView()
             }
