@@ -20,7 +20,10 @@ let package = Package(
         // Library code (testable)
         .target(
             name: "Moltipass",
-            path: "Sources/Moltipass"
+            path: "Sources/Moltipass",
+            resources: [
+                .process("Resources")
+            ]
         ),
         // App entry point (not testable)
         .target(
