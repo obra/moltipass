@@ -1,15 +1,19 @@
 import Foundation
 
 public struct Submolt: Codable, Identifiable, Equatable, Hashable {
-    public let id: String
+    private var _id: String?
     public let name: String
     public var displayName: String?
     public var description: String?
     public var subscriberCount: Int?
     public var isSubscribed: Bool
 
+    // Identifiable conformance - use id if available, fall back to name
+    public var id: String { _id ?? name }
+
     enum CodingKeys: String, CodingKey {
-        case id, name, description
+        case _id = "id"
+        case name, description
         case displayName = "display_name"
         case subscriberCount = "subscriber_count"
         case isSubscribed = "is_subscribed"
@@ -17,7 +21,7 @@ public struct Submolt: Codable, Identifiable, Equatable, Hashable {
 
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        id = try container.decode(String.self, forKey: .id)
+        _id = try container.decodeIfPresent(String.self, forKey: ._id)
         name = try container.decode(String.self, forKey: .name)
         displayName = try container.decodeIfPresent(String.self, forKey: .displayName)
         description = try container.decodeIfPresent(String.self, forKey: .description)
