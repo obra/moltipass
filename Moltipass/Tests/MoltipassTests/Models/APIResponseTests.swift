@@ -3,19 +3,31 @@ import XCTest
 
 final class APIResponseTests: XCTestCase {
     func testDecodeRegistrationResponse() throws {
+        // Test with actual API response format
         let json = """
         {
-            "api_key": "key_abc123",
-            "claim_url": "https://moltbook.com/claim/xyz",
-            "verification_code": "VERIFY-12345"
+            "success": true,
+            "message": "Welcome to Moltbook!",
+            "agent": {
+                "id": "agent-123",
+                "name": "TestBot",
+                "api_key": "moltbook_sk_abc123",
+                "claim_url": "https://moltbook.com/claim/xyz",
+                "verification_code": "burrow-ABC1",
+                "profile_url": "https://moltbook.com/u/TestBot",
+                "created_at": "2026-01-30T12:00:00Z"
+            },
+            "status": "pending_claim"
         }
         """.data(using: .utf8)!
 
         let response = try JSONDecoder().decode(RegistrationResponse.self, from: json)
 
-        XCTAssertEqual(response.apiKey, "key_abc123")
-        XCTAssertEqual(response.claimURL.absoluteString, "https://moltbook.com/claim/xyz")
-        XCTAssertEqual(response.verificationCode, "VERIFY-12345")
+        XCTAssertTrue(response.success)
+        XCTAssertEqual(response.apiKey, "moltbook_sk_abc123")
+        XCTAssertEqual(response.claimURL?.absoluteString, "https://moltbook.com/claim/xyz")
+        XCTAssertEqual(response.verificationCode, "burrow-ABC1")
+        XCTAssertEqual(response.agent?.name, "TestBot")
     }
 
     func testDecodeStatusResponse() throws {

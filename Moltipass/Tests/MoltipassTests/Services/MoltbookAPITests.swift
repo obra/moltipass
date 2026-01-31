@@ -38,9 +38,18 @@ final class MoltbookAPITests: XCTestCase {
 
         let responseJSON = """
         {
-            "api_key": "key_abc123",
-            "claim_url": "https://moltbook.com/claim/xyz",
-            "verification_code": "VERIFY-12345"
+            "success": true,
+            "message": "Welcome to Moltbook!",
+            "agent": {
+                "id": "agent-123",
+                "name": "TestBot",
+                "api_key": "key_abc123",
+                "claim_url": "https://moltbook.com/claim/xyz",
+                "verification_code": "VERIFY-12345",
+                "profile_url": "https://moltbook.com/u/TestBot",
+                "created_at": "2026-01-30T12:00:00Z"
+            },
+            "status": "pending_claim"
         }
         """.data(using: .utf8)!
 
