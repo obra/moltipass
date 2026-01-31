@@ -5,13 +5,13 @@ public struct MainTabView: View {
 
     public var body: some View {
         TabView {
-            Text("Feed")
+            FeedView()
                 .tabItem { Label("Feed", systemImage: "house") }
-            Text("Submolts")
+            SubmoltsView()
                 .tabItem { Label("Submolts", systemImage: "square.stack") }
-            Text("Search")
+            SearchView()
                 .tabItem { Label("Search", systemImage: "magnifyingglass") }
-            Text("Profile")
+            ProfileView()
                 .tabItem { Label("Profile", systemImage: "person") }
         }
     }
