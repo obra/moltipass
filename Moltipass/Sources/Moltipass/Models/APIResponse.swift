@@ -116,9 +116,33 @@ public struct SubmoltDetailResponse: Decodable {
 }
 
 public struct ProfileResponse: Decodable {
-    public let success: Bool
-    public let agent: Agent
+    public let success: Bool?
+    public let agent: Agent?
     public var posts: [Post]?
+
+    // The API might return the agent directly or wrapped
+    // This handles both cases
+    private let id: String?
+    private let name: String?
+    private let karma: Int?
+    private let description: String?
+    private let followerCount: Int?
+
+    enum CodingKeys: String, CodingKey {
+        case success, agent, posts
+        case id, name, karma, description
+        case followerCount = "follower_count"
+    }
+
+    // Computed property to get the agent either from the wrapped response or direct fields
+    public var resolvedAgent: Agent? {
+        if let agent = agent {
+            return agent
+        }
+        // If agent is nil but we have id/name, the response was the agent directly
+        guard let id = id, let name = name else { return nil }
+        return Agent(id: id, name: name, karma: karma, description: description, followerCount: followerCount)
+    }
 }
 
 public struct FollowingResponse: Decodable {

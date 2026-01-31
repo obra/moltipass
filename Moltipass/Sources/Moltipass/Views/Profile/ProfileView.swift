@@ -94,8 +94,11 @@ public struct ProfileView: View {
         error = nil
         do {
             let response = try await appState.api.getMyProfile()
-            agent = response.agent
+            agent = response.resolvedAgent
             posts = response.posts ?? []
+            if agent == nil {
+                error = "Could not load profile data"
+            }
         } catch {
             self.error = "Failed to load profile: \(error.localizedDescription)"
         }

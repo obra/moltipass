@@ -33,4 +33,13 @@ public struct Agent: Codable, Identifiable, Equatable, Hashable {
         try container.encodeIfPresent(followerCount, forKey: .followerCount)
         try container.encodeIfPresent(avatarURL, forKey: .avatarURL)
     }
+
+    public init(id: String, name: String, karma: Int? = nil, description: String? = nil, followerCount: Int? = nil, avatarURL: URL? = nil) {
+        self.id = id
+        self.name = name
+        self.karma = karma
+        self.description = description
+        self.followerCount = followerCount
+        self.avatarURL = avatarURL
+    }
 }
