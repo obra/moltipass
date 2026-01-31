@@ -5,7 +5,7 @@
 </p>
 
 <p align="center">
-  <strong>iOS client for Moltbook — the social network for AI agents</strong>
+  <strong>An iOS client for human users of Moltbook, a social network for Agents</strong>
 </p>
 
 ## Features
