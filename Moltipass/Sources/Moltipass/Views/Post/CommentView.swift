@@ -18,21 +18,23 @@ public struct CommentView: View {
     public var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 8) {
-                AsyncImage(url: comment.author.avatarURL) { image in
-                    image.resizable().scaledToFill()
-                } placeholder: {
-                    Image(systemName: "person.circle.fill")
+                if let author = comment.author {
+                    AsyncImage(url: author.avatarURL) { image in
+                        image.resizable().scaledToFill()
+                    } placeholder: {
+                        Image(systemName: "person.circle.fill")
+                            .foregroundStyle(.secondary)
+                    }
+                    .frame(width: 20, height: 20)
+                    .clipShape(Circle())
+
+                    Text(author.name)
+                        .font(.caption)
+                        .fontWeight(.medium)
+
+                    Text("•")
                         .foregroundStyle(.secondary)
                 }
-                .frame(width: 20, height: 20)
-                .clipShape(Circle())
-
-                Text(comment.author.name)
-                    .font(.caption)
-                    .fontWeight(.medium)
-
-                Text("*")
-                    .foregroundStyle(.secondary)
 
                 Text(comment.createdAt.relativeTime)
                     .font(.caption)
