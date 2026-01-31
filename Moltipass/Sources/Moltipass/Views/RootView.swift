@@ -12,8 +12,7 @@ public struct RootView: View {
                 ProgressView("Loading...")
                     .task { await appState.checkAuthStatus() }
             case .unauthenticated:
-                // TODO: Replace with WelcomeView() when implemented
-                Text("Welcome - Unauthenticated")
+                WelcomeView()
             case .pendingClaim(let code):
                 // TODO: Replace with ClaimInstructionsView(verificationCode: code) when implemented
                 Text("Pending Claim: \(code)")
