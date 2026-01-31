@@ -1,21 +1,26 @@
 import SwiftUI
+import os.log
 #if canImport(UIKit)
 import UIKit
 #elseif canImport(AppKit)
 import AppKit
 #endif
 
+private let logger = Logger(subsystem: "com.moltipass", category: "claim")
+
 public struct ClaimInstructionsView: View {
     @Environment(AppState.self) private var appState
     public let verificationCode: String
+    public let claimURL: URL?
 
     @State private var isVerifying = false
     @State private var error: String?
     @State private var pollCount = 0
     private let maxPolls = 40
 
-    public init(verificationCode: String) {
+    public init(verificationCode: String, claimURL: URL? = nil) {
         self.verificationCode = verificationCode
+        self.claimURL = claimURL
     }
 
     public var body: some View {
@@ -51,6 +56,13 @@ public struct ClaimInstructionsView: View {
                     openTwitter()
                 }
                 .buttonStyle(.borderedProminent)
+
+                if let claimURL = claimURL {
+                    Button("Open Claim Page") {
+                        openURL(claimURL)
+                    }
+                    .buttonStyle(.bordered)
+                }
 
                 Divider()
 
@@ -95,6 +107,14 @@ public struct ClaimInstructionsView: View {
         #endif
     }
 
+    private func openURL(_ url: URL) {
+        #if canImport(UIKit)
+        UIApplication.shared.open(url)
+        #elseif canImport(AppKit)
+        NSWorkspace.shared.open(url)
+        #endif
+    }
+
     private func openTwitter() {
         let tweetText = verificationCode
         let encodedText = tweetText.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? tweetText
@@ -122,12 +142,15 @@ public struct ClaimInstructionsView: View {
         while pollCount < maxPolls {
             do {
                 let status = try await appState.api.checkStatus()
+                logger.info("Status check \(self.pollCount): \(status.status.rawValue)")
                 if status.status == .claimed {
                     appState.completeAuthentication()
                     return
                 }
+            } catch let apiError as APIError {
+                logger.error("Status check \(self.pollCount) API error: \(apiError.error) - \(apiError.message ?? "no message")")
             } catch {
-                // Continue polling on error
+                logger.error("Status check \(self.pollCount) error: \(error)")
             }
 
             pollCount += 1

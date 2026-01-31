@@ -87,10 +87,24 @@ public struct RegistrationView: View {
                 name: name.trimmingCharacters(in: .whitespaces),
                 description: description.trimmingCharacters(in: .whitespaces)
             )
-            appState.saveCredentials(apiKey: response.apiKey, verificationCode: response.verificationCode)
+
+            // Validate response has required data
+            guard response.success, response.agent != nil else {
+                self.error = "Registration failed: \(response.message ?? "Unknown error")"
+                isLoading = false
+                return
+            }
+
+            try appState.saveCredentials(
+                apiKey: response.apiKey,
+                verificationCode: response.verificationCode,
+                claimURL: response.claimURL
+            )
             dismiss()
         } catch let apiError as APIError {
             error = apiError.message ?? apiError.error
+        } catch let credError as AppState.CredentialError {
+            error = credError.localizedDescription
         } catch {
             self.error = "Network error. Please check your connection."
         }

@@ -13,10 +13,26 @@ public struct RootView: View {
                     .task { await appState.checkAuthStatus() }
             case .unauthenticated:
                 WelcomeView()
-            case .pendingClaim(let code):
-                ClaimInstructionsView(verificationCode: code)
+            case .pendingClaim(let code, let claimURL):
+                ClaimInstructionsView(verificationCode: code, claimURL: claimURL)
             case .authenticated:
                 MainTabView()
+            }
+        }
+        .overlay {
+            if let error = appState.lastError {
+                VStack {
+                    Spacer()
+                    Text(error)
+                        .font(.caption)
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 8)
+                        .background(Color.red.opacity(0.9))
+                        .cornerRadius(8)
+                        .padding()
+                }
+                .transition(.move(edge: .bottom))
             }
         }
     }

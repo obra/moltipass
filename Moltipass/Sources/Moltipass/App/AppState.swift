@@ -1,4 +1,7 @@
 import SwiftUI
+import os.log
+
+private let logger = Logger(subsystem: "com.moltipass", category: "auth")
 
 @MainActor
 @Observable
@@ -6,52 +9,118 @@ public class AppState {
     public enum AuthStatus {
         case unknown
         case unauthenticated
-        case pendingClaim(verificationCode: String)
+        case pendingClaim(verificationCode: String, claimURL: URL?)
         case authenticated
     }
 
     public var authStatus: AuthStatus = .unknown
+    public var lastError: String?
     public let api: MoltbookAPI
     private let keychain = KeychainService()
     private let apiKeyKey = "moltbook_api_key"
     private let verificationCodeKey = "moltbook_verification_code"
+    private let claimURLKey = "moltbook_claim_url"
 
     public init() {
-        if let apiKey = keychain.retrieve(key: apiKeyKey) {
+        if let apiKey = keychain.retrieve(key: apiKeyKey), !apiKey.isEmpty {
+            logger.info("Found API key in keychain")
             api = MoltbookAPI(apiKey: apiKey)
         } else {
+            logger.info("No API key in keychain")
             api = MoltbookAPI()
         }
     }
 
     public func checkAuthStatus() async {
-        guard let _ = keychain.retrieve(key: apiKeyKey) else {
+        guard let apiKey = keychain.retrieve(key: apiKeyKey), !apiKey.isEmpty else {
+            logger.info("No valid API key, setting unauthenticated")
             authStatus = .unauthenticated
             return
         }
 
         do {
             let status = try await api.checkStatus()
+            logger.info("Status check returned: \(status.status.rawValue)")
             switch status.status {
             case .claimed:
                 authStatus = .authenticated
             case .pendingClaim:
-                if let code = keychain.retrieve(key: verificationCodeKey) {
-                    authStatus = .pendingClaim(verificationCode: code)
+                if let code = keychain.retrieve(key: verificationCodeKey), !code.isEmpty {
+                    let claimURL = keychain.retrieve(key: claimURLKey).flatMap { URL(string: $0) }
+                    logger.info("Restored pending claim with code: \(code)")
+                    authStatus = .pendingClaim(verificationCode: code, claimURL: claimURL)
                 } else {
+                    logger.error("API key valid but no verification code saved - corrupt state")
+                    lastError = "Session corrupted. Please sign out and register again."
                     authStatus = .unauthenticated
                 }
             }
+        } catch let apiError as APIError {
+            logger.error("Status check API error: \(apiError.error) - \(apiError.message ?? "")")
+            // Don't immediately go to unauthenticated - show the pending state with stored code
+            if let code = keychain.retrieve(key: verificationCodeKey), !code.isEmpty {
+                let claimURL = keychain.retrieve(key: claimURLKey).flatMap { URL(string: $0) }
+                authStatus = .pendingClaim(verificationCode: code, claimURL: claimURL)
+                lastError = "Could not verify status: \(apiError.message ?? apiError.error)"
+            } else {
+                authStatus = .unauthenticated
+                lastError = apiError.message ?? apiError.error
+            }
         } catch {
-            authStatus = .unauthenticated
+            logger.error("Status check network error: \(error)")
+            // On network error, restore from keychain if possible
+            if let code = keychain.retrieve(key: verificationCodeKey), !code.isEmpty {
+                let claimURL = keychain.retrieve(key: claimURLKey).flatMap { URL(string: $0) }
+                authStatus = .pendingClaim(verificationCode: code, claimURL: claimURL)
+                lastError = "Network error. Will retry when online."
+            } else {
+                authStatus = .unauthenticated
+                lastError = "Network error"
+            }
         }
     }
 
-    public func saveCredentials(apiKey: String, verificationCode: String) {
-        keychain.save(key: apiKeyKey, value: apiKey)
-        keychain.save(key: verificationCodeKey, value: verificationCode)
+    public func saveCredentials(apiKey: String, verificationCode: String, claimURL: URL?) throws {
+        // Validate before saving
+        guard !apiKey.isEmpty else {
+            throw CredentialError.emptyAPIKey
+        }
+        guard !verificationCode.isEmpty else {
+            throw CredentialError.emptyVerificationCode
+        }
+
+        logger.info("Saving credentials - API key length: \(apiKey.count), code: \(verificationCode)")
+
+        guard keychain.save(key: apiKeyKey, value: apiKey) else {
+            logger.error("Failed to save API key to keychain")
+            throw CredentialError.keychainSaveFailed
+        }
+        guard keychain.save(key: verificationCodeKey, value: verificationCode) else {
+            logger.error("Failed to save verification code to keychain")
+            throw CredentialError.keychainSaveFailed
+        }
+        if let claimURL = claimURL {
+            if !keychain.save(key: claimURLKey, value: claimURL.absoluteString) {
+                logger.warning("Failed to save claim URL to keychain")
+            }
+        }
+
         api.setAPIKey(apiKey)
-        authStatus = .pendingClaim(verificationCode: verificationCode)
+        authStatus = .pendingClaim(verificationCode: verificationCode, claimURL: claimURL)
+    }
+
+    public enum CredentialError: Error, LocalizedError {
+        case emptyAPIKey
+        case emptyVerificationCode
+        case keychainSaveFailed
+
+        public var errorDescription: String? {
+            switch self {
+            case .emptyAPIKey: return "Registration failed: no API key received"
+            case .emptyVerificationCode: return "Registration failed: no verification code received"
+            case .keychainSaveFailed: return "Failed to save credentials securely"
+            }
+        }
     }
 
     public func completeAuthentication() {
