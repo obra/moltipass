@@ -3,9 +3,12 @@ import Moltipass
 
 @main
 struct MoltipassApp: App {
+    @State private var appState = AppState()
+
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            RootView()
+                .environment(appState)
         }
     }
 }
