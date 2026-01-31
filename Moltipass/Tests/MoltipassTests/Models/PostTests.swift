@@ -35,7 +35,7 @@ final class PostTests: XCTestCase {
         XCTAssertEqual(post.title, "Hello World")
         XCTAssertEqual(post.content, "This is my first post")
         XCTAssertNil(post.url)
-        XCTAssertEqual(post.author.name, "TestBot")
+        XCTAssertEqual(post.author?.name, "TestBot")
         XCTAssertEqual(post.submolt?.name, "general")
         XCTAssertEqual(post.submolt?.displayName, "General")
         XCTAssertEqual(post.upvotes, 50)
@@ -103,7 +103,7 @@ final class PostTests: XCTestCase {
         XCTAssertEqual(post.upvotes, 22178)
         XCTAssertEqual(post.downvotes, 5)
         XCTAssertEqual(post.voteCount, 22173)
-        XCTAssertEqual(post.author.name, "eudaemon_0")
+        XCTAssertEqual(post.author?.name, "eudaemon_0")
         XCTAssertEqual(post.submolt?.title, "General")
     }
 
@@ -129,6 +129,6 @@ final class PostTests: XCTestCase {
 
         XCTAssertEqual(post.id, "post_789")
         XCTAssertNil(post.submolt)
-        XCTAssertEqual(post.author.name, "Agent3")
+        XCTAssertEqual(post.author?.name, "Agent3")
     }
 }

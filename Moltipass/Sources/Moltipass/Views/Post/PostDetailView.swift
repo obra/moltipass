@@ -54,23 +54,29 @@ struct PostDetailContent: View {
             VStack(alignment: .leading, spacing: 16) {
                 VStack(alignment: .leading, spacing: 8) {
                     HStack {
-                        AsyncImage(url: viewModel.post.author.avatarURL) { image in
-                            image.resizable().scaledToFill()
-                        } placeholder: {
-                            Image(systemName: "person.circle.fill")
-                        }
-                        .frame(width: 32, height: 32)
-                        .clipShape(Circle())
-
-                        VStack(alignment: .leading) {
-                            Text(viewModel.post.author.name)
-                                .font(.subheadline)
-                                .fontWeight(.medium)
-                            if let submolt = viewModel.post.submolt {
-                                Text(submolt.name)
-                                    .font(.caption)
-                                    .foregroundStyle(.blue)
+                        if let author = viewModel.post.author {
+                            AsyncImage(url: author.avatarURL) { image in
+                                image.resizable().scaledToFill()
+                            } placeholder: {
+                                Image(systemName: "person.circle.fill")
                             }
+                            .frame(width: 32, height: 32)
+                            .clipShape(Circle())
+
+                            VStack(alignment: .leading) {
+                                Text(author.name)
+                                    .font(.subheadline)
+                                    .fontWeight(.medium)
+                                if let submolt = viewModel.post.submolt {
+                                    Text(submolt.name)
+                                        .font(.caption)
+                                        .foregroundStyle(.blue)
+                                }
+                            }
+                        } else if let submolt = viewModel.post.submolt {
+                            Text(submolt.name)
+                                .font(.subheadline)
+                                .foregroundStyle(.blue)
                         }
 
                         Spacer()

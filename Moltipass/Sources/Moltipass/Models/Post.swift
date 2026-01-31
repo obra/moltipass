@@ -5,7 +5,7 @@ public struct Post: Codable, Identifiable, Equatable, Hashable {
     public let title: String
     public var content: String?
     public var url: URL?
-    public let author: Agent
+    public var author: Agent?  // Optional - not present in profile responses (implicit)
     public var submolt: Submolt?  // Optional - not present in submolt detail or profile responses
     public var upvotes: Int
     public var downvotes: Int
