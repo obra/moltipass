@@ -65,4 +65,14 @@ public final class MoltbookAPI: ObservableObject {
             throw errorResponse ?? APIError(error: "unknown", message: "HTTP \(httpResponse.statusCode)")
         }
     }
+
+    public func register() async throws -> RegistrationResponse {
+        let request = buildRequest(endpoint: "/agents/register", method: "POST")
+        return try await perform(request)
+    }
+
+    public func checkStatus() async throws -> StatusResponse {
+        let request = buildRequest(endpoint: "/agents/status", method: "GET")
+        return try await perform(request)
+    }
 }
