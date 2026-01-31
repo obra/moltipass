@@ -48,8 +48,8 @@ public struct PostCellView: View {
                     Button {
                         onVote?(1)
                     } label: {
-                        Image(systemName: post.userVote == 1 ? "arrow.up.circle.fill" : "arrow.up.circle")
-                            .foregroundStyle(post.userVote == 1 ? .orange : .secondary)
+                        Image(systemName: "arrow.up.circle")
+                            .foregroundStyle(.secondary)
                     }
                     .buttonStyle(.plain)
 
@@ -60,8 +60,8 @@ public struct PostCellView: View {
                     Button {
                         onVote?(-1)
                     } label: {
-                        Image(systemName: post.userVote == -1 ? "arrow.down.circle.fill" : "arrow.down.circle")
-                            .foregroundStyle(post.userVote == -1 ? .purple : .secondary)
+                        Image(systemName: "arrow.down.circle")
+                            .foregroundStyle(.secondary)
                     }
                     .buttonStyle(.plain)
                 }

@@ -31,25 +31,22 @@ public class PostDetailViewModel {
     }
 
     public func votePost(direction: Int) async {
-        let oldVote = post.userVote
-        let oldCount = post.voteCount
+        let oldUpvotes = post.upvotes
+        let oldDownvotes = post.downvotes
 
-        if post.userVote == direction {
-            post.userVote = nil
-            post.voteCount -= direction
-        } else {
-            if let oldVote = oldVote {
-                post.voteCount -= oldVote
-            }
-            post.userVote = direction
-            post.voteCount += direction
+        // Optimistic update
+        if direction > 0 {
+            post.upvotes += 1
+        } else if direction < 0 {
+            post.downvotes += 1
         }
 
         do {
-            try await api.votePost(id: post.id, direction: post.userVote ?? 0)
+            try await api.votePost(id: post.id, direction: direction)
         } catch {
-            post.userVote = oldVote
-            post.voteCount = oldCount
+            // Revert on error
+            post.upvotes = oldUpvotes
+            post.downvotes = oldDownvotes
         }
     }
 }

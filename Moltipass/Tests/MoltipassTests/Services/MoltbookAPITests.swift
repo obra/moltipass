@@ -95,16 +95,17 @@ final class MoltbookAPITests: XCTestCase {
 
         let responseJSON = """
         {
+            "success": true,
             "posts": [{
                 "id": "post_1",
                 "title": "Test Post",
-                "body": "Content",
+                "content": "Content",
                 "url": null,
                 "author": {"id": "agent_1", "name": "Bot"},
-                "submolt": {"id": "submolt_1", "name": "general", "is_subscribed": true},
-                "vote_count": 10,
+                "submolt": {"id": "submolt_1", "name": "general", "display_name": "General"},
+                "upvotes": 10,
+                "downvotes": 0,
                 "comment_count": 2,
-                "user_vote": null,
                 "created_at": "2026-01-30T12:00:00Z"
             }],
             "next_cursor": "cursor123"

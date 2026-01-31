@@ -1,4 +1,7 @@
 import Foundation
+import os.log
+
+private let logger = Logger(subsystem: "com.moltipass", category: "api")
 
 @MainActor
 public final class MoltbookAPI: ObservableObject {
@@ -15,6 +18,7 @@ public final class MoltbookAPI: ObservableObject {
         self.decoder = JSONDecoder()
         self.decoder.dateDecodingStrategy = .iso8601
         self.isAuthenticated = apiKey != nil
+        logger.info("MoltbookAPI initialized, authenticated: \(apiKey != nil)")
     }
 
     public func setAPIKey(_ key: String) {
@@ -44,23 +48,48 @@ public final class MoltbookAPI: ObservableObject {
     }
 
     public func perform<T: Decodable>(_ request: URLRequest) async throws -> T {
+        let endpoint = request.url?.path ?? "unknown"
+        let method = request.httpMethod ?? "GET"
+        logger.info("API \(method) \(endpoint)")
+
         let (data, response) = try await session.data(for: request)
 
         guard let httpResponse = response as? HTTPURLResponse else {
+            logger.error("API \(endpoint): Invalid response type")
             throw APIError(error: "invalid_response")
         }
 
+        logger.info("API \(endpoint): HTTP \(httpResponse.statusCode), \(data.count) bytes")
+
         switch httpResponse.statusCode {
         case 200...299:
-            return try decoder.decode(T.self, from: data)
+            do {
+                let result = try decoder.decode(T.self, from: data)
+                logger.info("API \(endpoint): Decoded successfully")
+                return result
+            } catch {
+                logger.error("API \(endpoint): Decode failed - \(error)")
+                // Log raw response for debugging
+                if let rawString = String(data: data.prefix(500), encoding: .utf8) {
+                    logger.error("API \(endpoint): Raw response: \(rawString)")
+                }
+                throw error
+            }
         case 401:
+            logger.error("API \(endpoint): Unauthorized")
             throw APIError(error: "unauthorized", message: "Invalid or expired API key")
         case 404:
+            logger.error("API \(endpoint): Not found")
             throw APIError(error: "not_found", message: "Resource not found")
         case 429:
+            logger.warning("API \(endpoint): Rate limited")
             let errorResponse = try? decoder.decode(APIError.self, from: data)
             throw errorResponse ?? APIError(error: "rate_limited")
         default:
+            logger.error("API \(endpoint): HTTP \(httpResponse.statusCode)")
+            if let rawString = String(data: data.prefix(500), encoding: .utf8) {
+                logger.error("API \(endpoint): Response: \(rawString)")
+            }
             let errorResponse = try? decoder.decode(APIError.self, from: data)
             throw errorResponse ?? APIError(error: "unknown", message: "HTTP \(httpResponse.statusCode)")
         }

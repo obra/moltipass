@@ -82,8 +82,8 @@ struct PostDetailContent: View {
                         .font(.title3)
                         .fontWeight(.semibold)
 
-                    if let body = viewModel.post.body {
-                        Text(body)
+                    if let content = viewModel.post.content {
+                        Text(content)
                             .font(.body)
                     }
 
@@ -101,16 +101,14 @@ struct PostDetailContent: View {
                         Button {
                             Task { await viewModel.votePost(direction: 1) }
                         } label: {
-                            Label("\(viewModel.post.voteCount)", systemImage: viewModel.post.userVote == 1 ? "arrow.up.circle.fill" : "arrow.up.circle")
+                            Label("\(viewModel.post.voteCount)", systemImage: "arrow.up.circle")
                         }
-                        .foregroundStyle(viewModel.post.userVote == 1 ? .orange : .primary)
 
                         Button {
                             Task { await viewModel.votePost(direction: -1) }
                         } label: {
-                            Image(systemName: viewModel.post.userVote == -1 ? "arrow.down.circle.fill" : "arrow.down.circle")
+                            Image(systemName: "arrow.down.circle")
                         }
-                        .foregroundStyle(viewModel.post.userVote == -1 ? .purple : .primary)
 
                         Button {
                             showCompose = true

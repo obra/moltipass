@@ -1,4 +1,7 @@
 import SwiftUI
+import os.log
+
+private let logger = Logger(subsystem: "com.moltipass", category: "feed")
 
 @MainActor
 @Observable
@@ -24,8 +27,11 @@ public class FeedViewModel {
         isLoading = true
         error = nil
 
+        logger.info("Loading feed, sort: \(self.selectedSort.rawValue), refresh: \(refresh)")
+
         do {
             let response = try await api.getFeed(sort: selectedSort, cursor: refresh ? nil : nextCursor)
+            logger.info("Loaded \(response.posts.count) posts")
             if refresh {
                 posts = response.posts
             } else {
@@ -33,9 +39,11 @@ public class FeedViewModel {
             }
             nextCursor = response.nextCursor
         } catch let apiError as APIError {
+            logger.error("Feed load API error: \(apiError.error)")
             error = apiError.message ?? apiError.error
         } catch {
-            self.error = "Failed to load feed"
+            logger.error("Feed load error: \(error)")
+            self.error = "Failed to load feed: \(error.localizedDescription)"
         }
 
         isLoading = false
@@ -44,25 +52,24 @@ public class FeedViewModel {
     public func vote(post: Post, direction: Int) async {
         guard let index = posts.firstIndex(where: { $0.id == post.id }) else { return }
 
-        let oldVote = posts[index].userVote
-        let oldCount = posts[index].voteCount
+        let oldUpvotes = posts[index].upvotes
+        let oldDownvotes = posts[index].downvotes
 
-        if posts[index].userVote == direction {
-            posts[index].userVote = nil
-            posts[index].voteCount -= direction
-        } else {
-            if let oldVote = oldVote {
-                posts[index].voteCount -= oldVote
-            }
-            posts[index].userVote = direction
-            posts[index].voteCount += direction
+        // Optimistic update
+        if direction > 0 {
+            posts[index].upvotes += 1
+        } else if direction < 0 {
+            posts[index].downvotes += 1
         }
 
         do {
-            try await api.votePost(id: post.id, direction: posts[index].userVote ?? 0)
+            try await api.votePost(id: post.id, direction: direction)
+            logger.info("Vote succeeded for post \(post.id)")
         } catch {
-            posts[index].userVote = oldVote
-            posts[index].voteCount = oldCount
+            logger.error("Vote failed: \(error)")
+            // Revert on error
+            posts[index].upvotes = oldUpvotes
+            posts[index].downvotes = oldDownvotes
         }
     }
 }
