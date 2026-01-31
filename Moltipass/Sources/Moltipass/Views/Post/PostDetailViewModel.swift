@@ -21,7 +21,9 @@ public class PostDetailViewModel {
         error = nil
 
         do {
-            let response = try await api.getComments(postId: post.id, sort: selectedSort)
+            // Comments come with the post detail response
+            let response = try await api.getPost(id: post.id)
+            post = response.post
             comments = response.comments
         } catch {
             self.error = "Failed to load comments"

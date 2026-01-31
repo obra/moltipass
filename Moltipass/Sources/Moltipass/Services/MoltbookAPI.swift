@@ -123,7 +123,7 @@ public final class MoltbookAPI: ObservableObject {
         return try await perform(request)
     }
 
-    public func getPost(id: String) async throws -> Post {
+    public func getPost(id: String) async throws -> PostDetailResponse {
         let request = buildRequest(endpoint: "/posts/\(id)", method: "GET")
         return try await perform(request)
     }

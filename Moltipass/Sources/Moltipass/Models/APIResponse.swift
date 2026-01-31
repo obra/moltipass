@@ -79,6 +79,12 @@ public struct CommentsResponse: Codable {
     public let comments: [Comment]
 }
 
+public struct PostDetailResponse: Decodable {
+    public let success: Bool
+    public let post: Post
+    public let comments: [Comment]
+}
+
 public struct SearchResponse: Codable {
     public var posts: [Post]?
     public var agents: [Agent]?
