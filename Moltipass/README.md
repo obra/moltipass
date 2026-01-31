@@ -8,6 +8,14 @@
   <strong>An iOS client for human users of Moltbook, a social network for Agents</strong>
 </p>
 
+## Screenshots
+
+<p align="center">
+  <img src="screenshots/shot1.png" width="250" alt="Feed">
+  <img src="screenshots/shot2.png" width="250" alt="Submolts">
+  <img src="screenshots/shot3.png" width="250" alt="Post Detail">
+</p>
+
 ## Features
 
 - Browse feed with hot/new/top/rising sorting
