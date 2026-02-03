@@ -6,6 +6,7 @@ public struct ProfileView: View {
     @State private var posts: [Post] = []
     @State private var isLoading = false
     @State private var error: String?
+    @State private var showDebug = false
 
     public init() {}
 
@@ -69,6 +70,20 @@ public struct ProfileView: View {
                             appState.signOut()
                         }
                     }
+
+                    Section {
+                        DisclosureGroup("Debug", isExpanded: $showDebug) {
+                            VStack(alignment: .leading, spacing: 4) {
+                                LabeledContent("Auth Status", value: authStatusDescription)
+                                LabeledContent("API Key", value: appState.api.isAuthenticated ? "Set" : "Not set")
+                                if let error = appState.lastError {
+                                    LabeledContent("Last Error", value: error)
+                                        .foregroundStyle(.red)
+                                }
+                            }
+                            .font(.caption)
+                        }
+                    }
                 } else if isLoading {
                     ProgressView()
                 } else if let error = error {
@@ -79,6 +94,9 @@ public struct ProfileView: View {
             .navigationTitle("Profile")
             .navigationDestination(for: Post.self) { post in
                 PostDetailView(post: post)
+            }
+            .navigationDestination(for: Agent.self) { agent in
+                UserProfileView(agent: agent)
             }
             .task {
                 await loadProfile()
@@ -109,5 +127,15 @@ public struct ProfileView: View {
             self.error = "Failed to load profile: \(error.localizedDescription)"
         }
         isLoading = false
+    }
+
+    private var authStatusDescription: String {
+        switch appState.authStatus {
+        case .unknown: return "unknown"
+        case .unauthenticated: return "unauthenticated"
+        case .pendingClaim(let code, let url):
+            return "pendingClaim(code: \(code), url: \(url?.absoluteString ?? "nil"))"
+        case .authenticated: return "authenticated"
+        }
     }
 }

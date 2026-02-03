@@ -47,52 +47,82 @@ public final class MoltbookAPI: ObservableObject {
         return request
     }
 
-    public func perform<T: Decodable>(_ request: URLRequest) async throws -> T {
+    public func perform<T: Decodable>(_ request: URLRequest, maxRetries: Int = 5) async throws -> T {
         let endpoint = request.url?.path ?? "unknown"
         let method = request.httpMethod ?? "GET"
-        logger.info("API \(method) \(endpoint)")
+        var lastError: Error?
 
-        let (data, response) = try await session.data(for: request)
+        for attempt in 0..<maxRetries {
+            if attempt > 0 {
+                let delay = pow(2.0, Double(attempt - 1)) // 1s, 2s, 4s, 8s...
+                logger.info("API \(endpoint): Retry \(attempt)/\(maxRetries - 1) after \(delay)s")
+                try? await Task.sleep(for: .seconds(delay))
+            }
 
-        guard let httpResponse = response as? HTTPURLResponse else {
-            logger.error("API \(endpoint): Invalid response type")
-            throw APIError(error: "invalid_response")
-        }
+            logger.info("API \(method) \(endpoint) (attempt \(attempt + 1))")
 
-        logger.info("API \(endpoint): HTTP \(httpResponse.statusCode), \(data.count) bytes")
-
-        switch httpResponse.statusCode {
-        case 200...299:
             do {
-                let result = try decoder.decode(T.self, from: data)
-                logger.info("API \(endpoint): Decoded successfully")
-                return result
-            } catch {
-                logger.error("API \(endpoint): Decode failed - \(error)")
-                // Log raw response for debugging
-                if let rawString = String(data: data.prefix(500), encoding: .utf8) {
-                    logger.error("API \(endpoint): Raw response: \(rawString)")
+                let (data, response) = try await session.data(for: request)
+
+                guard let httpResponse = response as? HTTPURLResponse else {
+                    logger.error("API \(endpoint): Invalid response type")
+                    throw APIError(error: "invalid_response")
                 }
-                throw error
+
+                logger.info("API \(endpoint): HTTP \(httpResponse.statusCode), \(data.count) bytes")
+
+                switch httpResponse.statusCode {
+                case 200...299:
+                    do {
+                        let result = try decoder.decode(T.self, from: data)
+                        logger.info("API \(endpoint): Decoded successfully")
+                        return result
+                    } catch {
+                        logger.error("API \(endpoint): Decode failed - \(error)")
+                        if let rawString = String(data: data.prefix(500), encoding: .utf8) {
+                            logger.error("API \(endpoint): Raw response: \(rawString)")
+                        }
+                        throw error // Don't retry decode errors
+                    }
+                case 401:
+                    logger.error("API \(endpoint): Unauthorized")
+                    throw APIError(error: "unauthorized", message: "Invalid or expired API key")
+                case 404:
+                    logger.error("API \(endpoint): Not found")
+                    throw APIError(error: "not_found", message: "Resource not found")
+                case 429:
+                    logger.warning("API \(endpoint): Rate limited")
+                    let errorResponse = try? decoder.decode(APIError.self, from: data)
+                    lastError = errorResponse ?? APIError(error: "rate_limited")
+                    continue // Retry rate limits
+                case 500...599:
+                    logger.error("API \(endpoint): Server error \(httpResponse.statusCode)")
+                    if let rawString = String(data: data.prefix(500), encoding: .utf8) {
+                        logger.error("API \(endpoint): Response: \(rawString)")
+                    }
+                    let errorResponse = try? decoder.decode(APIError.self, from: data)
+                    lastError = errorResponse ?? APIError(error: "server_error", message: "HTTP \(httpResponse.statusCode)")
+                    continue // Retry server errors
+                default:
+                    logger.error("API \(endpoint): HTTP \(httpResponse.statusCode)")
+                    if let rawString = String(data: data.prefix(500), encoding: .utf8) {
+                        logger.error("API \(endpoint): Response: \(rawString)")
+                    }
+                    let errorResponse = try? decoder.decode(APIError.self, from: data)
+                    throw errorResponse ?? APIError(error: "unknown", message: "HTTP \(httpResponse.statusCode)")
+                }
+            } catch let error as APIError {
+                throw error // Don't retry API errors (except rate limit/server handled above)
+            } catch {
+                // Network errors - retry
+                logger.error("API \(endpoint): Network error - \(error)")
+                lastError = error
+                continue
             }
-        case 401:
-            logger.error("API \(endpoint): Unauthorized")
-            throw APIError(error: "unauthorized", message: "Invalid or expired API key")
-        case 404:
-            logger.error("API \(endpoint): Not found")
-            throw APIError(error: "not_found", message: "Resource not found")
-        case 429:
-            logger.warning("API \(endpoint): Rate limited")
-            let errorResponse = try? decoder.decode(APIError.self, from: data)
-            throw errorResponse ?? APIError(error: "rate_limited")
-        default:
-            logger.error("API \(endpoint): HTTP \(httpResponse.statusCode)")
-            if let rawString = String(data: data.prefix(500), encoding: .utf8) {
-                logger.error("API \(endpoint): Response: \(rawString)")
-            }
-            let errorResponse = try? decoder.decode(APIError.self, from: data)
-            throw errorResponse ?? APIError(error: "unknown", message: "HTTP \(httpResponse.statusCode)")
         }
+
+        logger.error("API \(endpoint): All \(maxRetries) attempts failed")
+        throw lastError ?? APIError(error: "max_retries", message: "Request failed after \(maxRetries) attempts")
     }
 
     public struct RegisterRequest: Encodable, Sendable {
@@ -190,15 +220,17 @@ public final class MoltbookAPI: ObservableObject {
     }
 
     /// Subscribe to a submolt - uses submolt name not ID
-    public func subscribe(submoltName: String) async throws {
+    @discardableResult
+    public func subscribe(submoltName: String) async throws -> SubscribeResponse {
         let request = buildRequest(endpoint: "/submolts/\(submoltName)/subscribe", method: "POST")
-        let _: SubscribeResponse = try await perform(request)
+        return try await perform(request)
     }
 
     /// Unsubscribe from a submolt - uses submolt name not ID
-    public func unsubscribe(submoltName: String) async throws {
+    @discardableResult
+    public func unsubscribe(submoltName: String) async throws -> SubscribeResponse {
         let request = buildRequest(endpoint: "/submolts/\(submoltName)/unsubscribe", method: "POST")
-        let _: SubscribeResponse = try await perform(request)
+        return try await perform(request)
     }
 
     // MARK: - Search

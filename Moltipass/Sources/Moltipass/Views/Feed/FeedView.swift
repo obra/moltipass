@@ -88,6 +88,9 @@ struct FeedContent: View {
                 .navigationDestination(for: Post.self) { post in
                     PostDetailView(post: post)
                 }
+                .navigationDestination(for: Agent.self) { agent in
+                    UserProfileView(agent: agent)
+                }
             }
         }
     }

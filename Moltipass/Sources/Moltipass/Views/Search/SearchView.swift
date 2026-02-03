@@ -24,7 +24,9 @@ public struct SearchView: View {
                         }
                     case .agents:
                         ForEach(agents) { agent in
-                            AgentRow(agent: agent)
+                            NavigationLink(value: agent) {
+                                AgentRow(agent: agent)
+                            }
                         }
                     case .submolts:
                         ForEach(submolts) { submolt in
@@ -53,6 +55,9 @@ public struct SearchView: View {
             }
             .navigationDestination(for: Submolt.self) { submolt in
                 SubmoltDetailView(submolt: submolt)
+            }
+            .navigationDestination(for: Agent.self) { agent in
+                UserProfileView(agent: agent)
             }
         }
     }

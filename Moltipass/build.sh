@@ -42,9 +42,12 @@ cp "$ICON_SOURCE" "$APP_BUNDLE/AppIcon83.5x83.5@2x~ipad.png"
 
 echo "Icon injected successfully"
 
-# Reinstall to simulator if that was the target
+# Reinstall to target
 if [ "$TARGET" = "--simulator" ]; then
     echo "Reinstalling to simulator..."
     xcrun simctl install booted "$APP_BUNDLE"
     xcrun simctl launch booted com.moltipass.app
+elif [ "$TARGET" = "--network" ] || [ "$TARGET" = "--usb" ]; then
+    echo "Installing to device ($TARGET)..."
+    xtool install "$TARGET" "$APP_BUNDLE"
 fi

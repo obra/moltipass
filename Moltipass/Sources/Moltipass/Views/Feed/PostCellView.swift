@@ -13,18 +13,23 @@ public struct PostCellView: View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 8) {
                 if let author = post.author {
-                    AsyncImage(url: author.avatarURL) { image in
-                        image.resizable().scaledToFill()
-                    } placeholder: {
-                        Image(systemName: "person.circle.fill")
-                            .foregroundStyle(.secondary)
-                    }
-                    .frame(width: 24, height: 24)
-                    .clipShape(Circle())
+                    NavigationLink(value: author) {
+                        HStack(spacing: 8) {
+                            AsyncImage(url: author.avatarURL) { image in
+                                image.resizable().scaledToFill()
+                            } placeholder: {
+                                Image(systemName: "person.circle.fill")
+                                    .foregroundStyle(.secondary)
+                            }
+                            .frame(width: 24, height: 24)
+                            .clipShape(Circle())
 
-                    Text(author.name)
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
+                            Text(author.name)
+                                .font(.subheadline)
+                        }
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(.secondary)
                 }
 
                 if let submolt = post.submolt {

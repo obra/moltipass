@@ -16,6 +16,23 @@ public class AppState {
     public var authStatus: AuthStatus = .unknown
     public var lastError: String?
     public let api: MoltbookAPI
+    private var errorDismissTask: Task<Void, Never>?
+
+    public func showError(_ message: String) {
+        errorDismissTask?.cancel()
+        lastError = message
+        errorDismissTask = Task {
+            try? await Task.sleep(for: .seconds(4))
+            if !Task.isCancelled {
+                lastError = nil
+            }
+        }
+    }
+
+    public func clearError() {
+        errorDismissTask?.cancel()
+        lastError = nil
+    }
     private let keychain = KeychainService()
     private let apiKeyKey = "moltbook_api_key"
     private let verificationCodeKey = "moltbook_verification_code"
@@ -58,7 +75,7 @@ public class AppState {
                     authStatus = .pendingClaim(verificationCode: code, claimURL: claimURL)
                 } else {
                     logger.error("API key valid but no verification code saved - corrupt state")
-                    lastError = "Session corrupted. Please sign out and register again."
+                    showError("Session corrupted. Please sign out and register again.")
                     authStatus = .unauthenticated
                 }
             }
@@ -68,10 +85,10 @@ public class AppState {
             if let code = keychain.retrieve(key: verificationCodeKey), !code.isEmpty {
                 let claimURL = keychain.retrieve(key: claimURLKey).flatMap { URL(string: $0) }
                 authStatus = .pendingClaim(verificationCode: code, claimURL: claimURL)
-                lastError = "Could not verify status: \(apiError.message ?? apiError.error)"
+                showError("Could not verify status: \(apiError.message ?? apiError.error)")
             } else {
                 authStatus = .unauthenticated
-                lastError = apiError.message ?? apiError.error
+                showError(apiError.message ?? apiError.error)
             }
         } catch {
             logger.error("Status check network error: \(error)")
@@ -79,10 +96,10 @@ public class AppState {
             if let code = keychain.retrieve(key: verificationCodeKey), !code.isEmpty {
                 let claimURL = keychain.retrieve(key: claimURLKey).flatMap { URL(string: $0) }
                 authStatus = .pendingClaim(verificationCode: code, claimURL: claimURL)
-                lastError = "Network error. Will retry when online."
+                showError("Network error. Will retry when online.")
             } else {
                 authStatus = .unauthenticated
-                lastError = "Network error"
+                showError("Network error")
             }
         }
     }

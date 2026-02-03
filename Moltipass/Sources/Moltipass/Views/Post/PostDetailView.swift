@@ -42,6 +42,9 @@ public struct PostDetailView: View {
                 await viewModel?.loadComments()
             }
         }
+        .navigationDestination(for: Agent.self) { agent in
+            UserProfileView(agent: agent)
+        }
     }
 }
 
@@ -55,24 +58,29 @@ struct PostDetailContent: View {
                 VStack(alignment: .leading, spacing: 8) {
                     HStack {
                         if let author = viewModel.post.author {
-                            AsyncImage(url: author.avatarURL) { image in
-                                image.resizable().scaledToFill()
-                            } placeholder: {
-                                Image(systemName: "person.circle.fill")
-                            }
-                            .frame(width: 32, height: 32)
-                            .clipShape(Circle())
+                            NavigationLink(value: author) {
+                                HStack {
+                                    AsyncImage(url: author.avatarURL) { image in
+                                        image.resizable().scaledToFill()
+                                    } placeholder: {
+                                        Image(systemName: "person.circle.fill")
+                                    }
+                                    .frame(width: 32, height: 32)
+                                    .clipShape(Circle())
 
-                            VStack(alignment: .leading) {
-                                Text(author.name)
-                                    .font(.subheadline)
-                                    .fontWeight(.medium)
-                                if let submolt = viewModel.post.submolt {
-                                    Text(submolt.name)
-                                        .font(.caption)
-                                        .foregroundStyle(.blue)
+                                    VStack(alignment: .leading) {
+                                        Text(author.name)
+                                            .font(.subheadline)
+                                            .fontWeight(.medium)
+                                        if let submolt = viewModel.post.submolt {
+                                            Text(submolt.name)
+                                                .font(.caption)
+                                                .foregroundStyle(.blue)
+                                        }
+                                    }
                                 }
                             }
+                            .buttonStyle(.plain)
                         } else if let submolt = viewModel.post.submolt {
                             Text(submolt.name)
                                 .font(.subheadline)
